@@ -1,0 +1,9 @@
+const firebaseConfig = {
+  apiKey: "AIzaSyCUYOBDp6NkQ35DmRlxs-QKaeCPj-7NVdA",
+  authDomain: "smart-ai-378a3.firebaseapp.com",
+  projectId: "smart-ai-378a3",
+  storageBucket: "smart-ai-378a3.firebasestorage.app",
+  messagingSenderId: "540901522232",
+  appId: "1:540901522232:web:23c9ea40fadcf757f51fcd",
+  measurementId: "G-KGGNRBRGVD"
+};
