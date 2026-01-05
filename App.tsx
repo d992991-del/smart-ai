@@ -10,8 +10,9 @@ import AnalysisPage from './components/AnalysisPage';
 import SettingsPage from './components/SettingsPage';
 import { AppState, User, BankAccount, Transaction, TransactionType } from './types';
 import { DEFAULT_CATEGORIES, DEMO_ACCOUNTS, DEMO_TRANSACTIONS } from './constants';
-import { auth, isFirebaseEnabled } from './firebase';
+import { auth, db, isFirebaseEnabled } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>(() => {
@@ -19,9 +20,9 @@ const App: React.FC = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return { ...parsed, isDemoMode: !isFirebaseEnabled() };
+        return { ...parsed, isDemoMode: parsed.isDemoMode ?? true };
       } catch (e) {
-        console.error("Failed to load local state", e);
+        console.error("載入本機數據失敗", e);
       }
     }
     return {
@@ -33,34 +34,69 @@ const App: React.FC = () => {
     };
   });
 
-  // 監聽 Firebase 登入狀態
+  // 1. 監聽 Auth 狀態
   useEffect(() => {
     if (auth) {
-      const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
-          setState(prev => ({
-            ...prev,
-            user: {
-              id: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User'
-            },
-            isDemoMode: false
-          }));
-        } else if (!state.isDemoMode) {
-          setState(prev => ({ ...prev, user: null }));
+          const user: User = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User'
+          };
+          
+          setState(prev => ({ ...prev, user, isDemoMode: false }));
+          
+          // 嘗試從 Firestore 載入數據
+          if (db) {
+            try {
+              const docRef = doc(db, "user_data", firebaseUser.uid);
+              const docSnap = await getDoc(docRef);
+              if (docSnap.exists()) {
+                const data = docSnap.data();
+                setState(prev => ({
+                  ...prev,
+                  accounts: data.accounts || [],
+                  transactions: data.transactions || [],
+                }));
+              }
+            } catch (err) {
+              console.error("Firestore 數據載入失敗", err);
+            }
+          }
+        } else {
+          // 如果沒有 Firebase 使用者且不在展示模式，則登出
+          if (!state.isDemoMode) {
+            setState(prev => ({ ...prev, user: null }));
+          }
         }
       });
       return () => unsubscribe();
     }
-  }, []);
+  }, [state.isDemoMode]);
 
+  // 2. 數據持久化 (Local + Firestore)
   useEffect(() => {
     localStorage.setItem('smart_finance_state', JSON.stringify(state));
-  }, [state]);
+    
+    // 如果是正式模式且已登入，同步到 Firestore
+    if (!state.isDemoMode && state.user && db) {
+      const syncToCloud = async () => {
+        try {
+          await setDoc(doc(db, "user_data", state.user!.id), {
+            accounts: state.accounts,
+            transactions: state.transactions,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        } catch (err) {
+          console.error("Firestore 同步失敗", err);
+        }
+      };
+      syncToCloud();
+    }
+  }, [state.accounts, state.transactions, state.isDemoMode, state.user]);
 
   const handleLogin = (email: string) => {
-    // 如果是展示模式
     if (state.isDemoMode) {
       setState(prev => ({
         ...prev,
@@ -70,19 +106,17 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    if (auth) {
-      await signOut(auth);
-    }
+    if (auth) await signOut(auth);
     setState(prev => ({ ...prev, user: null }));
   };
 
   const handleToggleMode = () => {
-    const nextIsDemo = !state.isDemoMode;
-    if (!nextIsDemo && !isFirebaseEnabled()) {
-      alert("偵測不到 Firebase 配置。正式模式需要正確的環境變數設置，請檢查 GitHub Secrets。");
+    const nextMode = !state.isDemoMode;
+    if (!nextMode && !isFirebaseEnabled()) {
+      alert("環境變數中缺少 Firebase 設定，無法啟動正式模式。");
       return;
     }
-    setState(prev => ({ ...prev, isDemoMode: nextIsDemo }));
+    setState(prev => ({ ...prev, isDemoMode: nextMode, user: null }));
   };
 
   const addAccount = (acc: Omit<BankAccount, 'id'>) => {

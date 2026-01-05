@@ -55,7 +55,6 @@ const Dashboard: React.FC<DashboardProps> = ({ state }) => {
         </div>
       </div>
 
-      {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-4">
@@ -65,10 +64,6 @@ const Dashboard: React.FC<DashboardProps> = ({ state }) => {
             </div>
           </div>
           <p className="text-2xl font-bold text-slate-900">NT$ {totalBalance.toLocaleString()}</p>
-          <div className="mt-2 flex items-center text-xs text-green-600">
-            <i className="fas fa-arrow-up mr-1"></i>
-            <span>比上月增加 2.5%</span>
-          </div>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -79,7 +74,6 @@ const Dashboard: React.FC<DashboardProps> = ({ state }) => {
             </div>
           </div>
           <p className="text-2xl font-bold text-slate-900">NT$ {monthlyStats.income.toLocaleString()}</p>
-          <p className="mt-2 text-xs text-slate-400">主要來源：薪資、獎金</p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -90,16 +84,9 @@ const Dashboard: React.FC<DashboardProps> = ({ state }) => {
             </div>
           </div>
           <p className="text-2xl font-bold text-slate-900">NT$ {monthlyStats.expense.toLocaleString()}</p>
-          <div className="mt-2 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-red-500" 
-              style={{ width: `${Math.min((monthlyStats.expense / Math.max(monthlyStats.income, 1)) * 100, 100)}%` }}
-            ></div>
-          </div>
         </div>
       </div>
 
-      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <h3 className="text-lg font-bold text-slate-800 mb-6">支出分類統計</h3>
