@@ -1,0 +1,5 @@
+{
+  "name": "SmartFinance AI - 個人化財務管理系統",
+  "description": "這是一款整合 AI 智能分析的個人財務管理系統。支援多銀行帳戶管理、收支記帳、分類統計，並利用 Gemini AI 提供專業的理財建議與收支報表分析。",
+  "requestFramePermissions": []
+}
